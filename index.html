@@ -258,7 +258,7 @@
     let difficulty = 'medium';
     let noHintsShown = false;
     let gameActive = false;
-
+    let totalGuesses = 0;
     let confettiInterval = null;
 
     function hasRepeatingDigits(num) {
@@ -317,10 +317,11 @@
     }
 
     function resetGame() {
-      noHintsShown = false;  // Reset no hints shown flag
+      noHintsShown = false;
       stopConfetti();
       modalOverlay.style.display = 'none';
       hintsLeft = 3;
+      totalGuesses = 0;
       hintBtn.textContent = `Hint (${hintsLeft} left)`;
       usedHints.clear();
       messages.textContent = '';
@@ -337,6 +338,12 @@
       updateSecretNumberDisplay();
       updateRangeLabel();
       rangeDisplay.textContent = `Current range: ${low.toLocaleString()} – ${high.toLocaleString()}`;
+
+      // Remove extra <p> from previous win modal if exists
+      const extraPs = modalOverlay.querySelectorAll('.modal p');
+      if (extraPs.length > 1) {
+        extraPs[1].remove();
+      }
     }
 
     function startNewGame() {
@@ -350,7 +357,7 @@
       high = diff.max;
       maxRange = diff.max;
       secretNumber = generateNumber(low, high);
-      difficultyModalOverlay.style.display = 'none'; // hide difficulty modal
+      difficultyModalOverlay.style.display = 'none';
       resetGame();
     }
 
@@ -391,6 +398,18 @@
 
     function showModal() {
       modalNumber.textContent = secretNumber.toLocaleString();
+
+      // Remove previous total guesses if exists
+      const modalBox = modalOverlay.querySelector('.modal');
+      const oldGuessCount = modalBox.querySelector('.guessCount');
+      if (oldGuessCount) oldGuessCount.remove();
+
+      // Add new total guesses
+      const guessCountElement = document.createElement('p');
+      guessCountElement.className = 'guessCount';
+      guessCountElement.textContent = `You took ${totalGuesses} guess${totalGuesses === 1 ? '' : 'es'}!`;
+      modalBox.appendChild(guessCountElement);
+
       modalOverlay.style.display = 'flex';
     }
 
@@ -400,7 +419,7 @@
 
     resetBtn.addEventListener('click', () => {
       hideModal();
-      difficultyModalOverlay.style.display = 'flex'; // Show difficulty modal again for new game
+      difficultyModalOverlay.style.display = 'flex';
     });
 
     hintBtn.addEventListener('click', () => {
@@ -425,7 +444,7 @@
         return;
       }
       hintsLeft--;
-      noHintsShown = false;  // Reset since a new hint was given
+      noHintsShown = false;
       hintBtn.textContent = `Hint (${hintsLeft} left)`;
       const hintEntry = document.createElement('div');
       hintEntry.textContent = hint;
@@ -445,9 +464,7 @@
       guessBtn.disabled = true;
       hintBtn.disabled = true;
       giveUpBtn.disabled = true;
-      // Show message in difficulty modal
       giveUpMessage.textContent = `You gave up! The number was ${secretNumber.toLocaleString()}.`;
-      // Show difficulty modal
       difficultyModalOverlay.style.display = 'flex';
     });
 
@@ -489,7 +506,6 @@
         guessBtn.disabled = true;
         return;
       }
-      guessBtn.disabled = false;
 
       if (guess.includes('.') || guess.includes('-')) {
         messages.textContent = 'Please enter a positive integer.';
@@ -507,6 +523,8 @@
         messages.textContent = 'Your guess has repeating digits. Try again!';
         return;
       }
+
+      totalGuesses++;
 
       let feedback = '';
       if (guessNum === secretNumber) {
@@ -536,22 +554,18 @@
 
       const guessEntry = document.createElement('div');
       guessEntry.textContent = `You guessed ${guessNum.toLocaleString()}: ${feedback}`;
-      history.insertBefore(guessEntry, history.children[1]); // index 0 is the <strong> label
+      // Insert at top after label
+      history.insertBefore(guessEntry, history.children[1]);
 
       guessInput.value = '';
       guessInput.focus();
     }
 
     debugToggle.addEventListener('change', () => {
-      if (debugToggle.checked) {
-        secretNumberDisplay.style.display = 'inline';
-        secretNumberDisplay.textContent = `Secret Number: ${secretNumber.toLocaleString()}`;
-      } else {
-        secretNumberDisplay.style.display = 'none';
-      }
+      updateSecretNumberDisplay();
     });
 
-    // Disable game inputs initially until game started
+    // Initial state
     guessInput.disabled = true;
     guessBtn.disabled = true;
     hintBtn.disabled = true;
