@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Number Guessing Game (No Repeating Digits)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+    * { box-sizing: border-box; }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 1.25rem;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      background: white;
+      max-width: 460px;
+      width: 100%;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05), 0 6px 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+      color: #222;
+    }
+    p {
+      color: #666;
+      margin-bottom: 1.5rem;
+    }
+    select, input[type=number], button {
+      width: 100%;
+      font-size: 1.125rem;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      border: 1.8px solid #ddd;
+      margin-bottom: 1rem;
+    }
+    select:focus, input:focus-visible {
+      border-color: #3b82f6;
+      outline: 3px solid #93c5fd;
+    }
+    button {
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      background: #3b82f6;
+      color: white;
+    }
+    button:hover:not(:disabled),
+    button:focus-visible:not(:disabled) {
+      background: #2563eb;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    #hintBtn {
+      background-color: #ef4444;
+    }
+    #hintBtn:hover:not(:disabled),
+    #hintBtn:focus-visible:not(:disabled) {
+      background-color: #b91c1c;
+    }
+    #giveUpBtn {
+      background-color: #f59e0b;
+    }
+    #giveUpBtn:hover:not(:disabled),
+    #giveUpBtn:focus-visible:not(:disabled) {
+      background-color: #b45309;
+    }
+    #messages {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #111;
+      text-align: left;
+      min-height: 3rem;
+    }
+    #range {
+      text-align: left;
+      color: #555;
+      margin-bottom: 1rem;
+    }
+    #history {
+      font-family: monospace;
+      background: #f9fafb;
+      border: 1px solid #e0e7ff;
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      max-height: 140px;
+      overflow-y: auto;
+      text-align: left;
+    }
+    #history strong {
+      color: #3b82f6;
+    }
+    #debugContainer {
+      margin-top: 1.25rem;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      color: #777;
+    }
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      opacity: 0.8;
+      z-index: 9999;
+      pointer-events: none;
+      animation: confetti-fall 4s linear forwards;
+      border-radius: 2px;
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(600px) rotate(360deg); opacity: 0; }
+    }
+    #modalOverlay, #difficultyModalOverlay, #confirmGiveUpOverlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    .modal {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      text-align: center;
+      width: 90%;
+      max-width: 320px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+    .modal h2 {
+      margin-top: 0;
+      color: #3b82f6;
+    }
+    .modal button {
+      width: auto;
+      padding: 0.75rem 1.5rem;
+      border-radius: 24px;
+    }
+    #confirmGiveUpModalButtons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+    #secretNumberDisplay {
+      font-weight: bold;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <!-- Modals -->
+  <div id="difficultyModalOverlay" style="display:flex;">
+    <div class="modal">
+      <h2>Select Difficulty</h2>
+      <div id="giveUpMessage" style="color:#b45309; font-weight:600; margin-bottom:15px;"></div>
+      <select id="difficultySelect" aria-label="Select difficulty">
+        <option value="easy">Easy (1 to 10,000)</option>
+        <option value="medium" selected>Medium (1 to 1,000,000)</option>
+        <option value="hard">Hard (1 to 9,999,999)</option>
+      </select>
+      <button id="startGameBtn">Start Game</button>
+    </div>
+  </div>
+
+  <div id="confirmGiveUpOverlay">
+    <div class="modal">
+      <h2>Give Up?</h2>
+      <div id="confirmGiveUpModalButtons">
+        <button id="confirmGiveUpYes">Yes</button>
+        <button id="confirmGiveUpNo">No</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalOverlay">
+    <div class="modal">
+      <h2>🎉 You guessed it! 🎉</h2>
+      <p>The number was <span id="modalNumber"></span>.</p>
+      <button id="resetBtn">Play Again</button>
+    </div>
+  </div>
+
+  <!-- Main Game Container -->
+  <div class="container">
+    <h1>Number Guessing Game</h1>
+    <p>Guess the number between 1 and <span id="maxRangeLabel">1,000,000</span> with no repeating digits!</p>
+    <input type="number" id="guessInput" placeholder="Enter your guess" disabled />
+    <button id="guessBtn" disabled>Guess</button>
+    <button id="hintBtn" disabled>Hint (3 left)</button>
+    <button id="giveUpBtn" disabled style="display:none;">Give Up</button>
+    <div id="messages" role="status"></div>
+    <div id="range"></div>
+    <div id="history"><strong>Guess History:</strong></div>
+    <div id="debugContainer">
+      <label><input type="checkbox" id="debugToggle" /> Show secret number</label>
+      <span id="secretNumberDisplay" style="display:none;"></span>
+    </div>
+  </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const difficulties = {
+      easy: { min: 1, max: 10000 },
+      medium: { min: 1, max: 1000000 },
+      hard: { min: 1, max: 9999999 }
+    };
+
+    const difficultyModalOverlay = document.getElementById('difficultyModalOverlay');
+    const difficultySelect = document.getElementById('difficultySelect');
+    const startGameBtn = document.getElementById('startGameBtn');
+    const giveUpMessage = document.getElementById('giveUpMessage');
+
+    const confirmGiveUpOverlay = document.getElementById('confirmGiveUpOverlay');
+    const confirmGiveUpYes = document.getElementById('confirmGiveUpYes');
+    const confirmGiveUpNo = document.getElementById('confirmGiveUpNo');
+
+    const guessInput = document.getElementById('guessInput');
+    const guessBtn = document.getElementById('guessBtn');
+    const hintBtn = document.getElementById('hintBtn');
+    const giveUpBtn = document.getElementById('giveUpBtn');
+    const messages = document.getElementById('messages');
+    const history = document.getElementById('history');
+    const rangeDisplay = document.getElementById('range');
+    const maxRangeLabel = document.getElementById('maxRangeLabel');
+    const debugToggle = document.getElementById('debugToggle');
+    const secretNumberDisplay = document.getElementById('secretNumberDisplay');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const resetBtn = document.getElementById('resetBtn');
+    const modalNumber = document.getElementById('modalNumber');
+
+    const sounds = {
+      guessLow: new Audio('https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg'),
+      guessHigh: new Audio('https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg'),
+      correct: new Audio('https://actions.google.com/sounds/v1/cartoon/clang.ogg')
+    };
+    for (const s of Object.values(sounds)) s.preload = 'auto';
+
+    let secretNumber, low, high, maxRange;
+    let hintsLeft = 3;
+    let usedHints = new Set();
+    let difficulty = 'medium';
+    let noHintsShown = false;
+    let gameActive = false;
+
+    let confettiInterval = null;
+
+    function hasRepeatingDigits(num) {
+      const digits = num.toString();
+      return new Set(digits).size !== digits.length;
+    }
+
+    function generateNumber(min, max) {
+      while (true) {
+        const num = Math.floor(Math.random() * (max - min + 1)) + min;
+        if (!hasRepeatingDigits(num)) return num;
+      }
+    }
+
+    function createConfettiPiece() {
+      const confetti = document.createElement('div');
+      confetti.classList.add('confetti');
+      confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+      confetti.style.left = Math.random() * window.innerWidth + 'px';
+      confetti.style.top = '-10px';
+      const size = 5 + Math.random() * 10;
+      confetti.style.width = `${size}px`;
+      confetti.style.height = `${size}px`;
+      confetti.style.animationDuration = `${2 + Math.random() * 3}s`;
+      confetti.style.animationDelay = '0s';
+      confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+      document.body.appendChild(confetti);
+      setTimeout(() => confetti.remove(), 5000);
+    }
+
+    function startConfetti() {
+      if (confettiInterval) return;
+      confettiInterval = setInterval(() => {
+        for (let i = 0; i < 5; i++) createConfettiPiece();
+      }, 100);
+    }
+
+    function stopConfetti() {
+      if (confettiInterval) {
+        clearInterval(confettiInterval);
+        confettiInterval = null;
+      }
+    }
+
+    function updateSecretNumberDisplay() {
+      if (debugToggle.checked) {
+        secretNumberDisplay.style.display = 'inline';
+        secretNumberDisplay.textContent = `Secret Number: ${secretNumber}`;
+      } else {
+        secretNumberDisplay.style.display = 'none';
+      }
+    }
+
+    function updateRangeLabel() {
+      maxRangeLabel.textContent = maxRange.toLocaleString();
+    }
+
+    function resetGame() {
+      noHintsShown = false;  // Reset no hints shown flag
+      stopConfetti();
+      modalOverlay.style.display = 'none';
+      hintsLeft = 3;
+      hintBtn.textContent = `Hint (${hintsLeft} left)`;
+      usedHints.clear();
+      messages.textContent = '';
+      history.innerHTML = '<strong>Guess History:</strong><br />';
+      guessInput.value = '';
+      guessInput.disabled = false;
+      guessBtn.disabled = true;
+      hintBtn.disabled = false;
+      giveUpBtn.style.display = 'inline-block';
+      giveUpBtn.disabled = false;
+      gameActive = true;
+      giveUpMessage.textContent = '';
+      guessInput.focus();
+      updateSecretNumberDisplay();
+      updateRangeLabel();
+      rangeDisplay.textContent = `Current range: ${low.toLocaleString()} – ${high.toLocaleString()}`;
+    }
+
+    function startNewGame() {
+      difficulty = difficultySelect.value;
+      const diff = difficulties[difficulty];
+      if (!diff) {
+        alert('Selected difficulty is invalid.');
+        return;
+      }
+      low = diff.min;
+      high = diff.max;
+      maxRange = diff.max;
+      secretNumber = generateNumber(low, high);
+      difficultyModalOverlay.style.display = 'none'; // hide difficulty modal
+      resetGame();
+    }
+
+    function generateUniqueHint() {
+      const numStr = secretNumber.toString();
+      const digitsCount = numStr.length;
+
+      const hints = [];
+      hints.push(`The number has ${digitsCount} digits.`);
+      hints.push(`The number is ${secretNumber % 2 === 0 ? 'even' : 'odd'}.`);
+
+      for (let i = 0; i < digitsCount; i++) {
+        hints.push(`Digit number ${i + 1} is ${numStr[i]}.`);
+      }
+
+      hints.push(secretNumber % 3 === 0
+        ? 'The number is divisible by 3.'
+        : 'The number is NOT divisible by 3.');
+
+      hints.push(secretNumber % 5 === 0
+        ? 'The number is divisible by 5.'
+        : 'The number is NOT divisible by 5.');
+
+      const availableHints = hints.filter(h => !usedHints.has(h));
+      if (availableHints.length === 0) return null;
+      const hint = availableHints[Math.floor(Math.random() * availableHints.length)];
+      usedHints.add(hint);
+      return hint;
+    }
+
+    function playSound(sound) {
+      if (!sound) return;
+      try {
+        sound.currentTime = 0;
+        sound.play();
+      } catch {}
+    }
+
+    function showModal() {
+      modalNumber.textContent = secretNumber.toLocaleString();
+      modalOverlay.style.display = 'flex';
+    }
+
+    function hideModal() {
+      modalOverlay.style.display = 'none';
+    }
+
+    resetBtn.addEventListener('click', () => {
+      hideModal();
+      difficultyModalOverlay.style.display = 'flex'; // Show difficulty modal again for new game
+    });
+
+    hintBtn.addEventListener('click', () => {
+      if (!gameActive) return;
+      if (hintsLeft <= 0) {
+        if (!noHintsShown) {
+          const noHints = document.createElement('div');
+          noHints.textContent = 'No hints left!';
+          messages.appendChild(noHints);
+          noHintsShown = true;
+        }
+        return;
+      }
+      const hint = generateUniqueHint();
+      if (!hint) {
+        if (!noHintsShown) {
+          const noNew = document.createElement('div');
+          noNew.textContent = 'No new hints available!';
+          messages.appendChild(noNew);
+          noHintsShown = true;
+        }
+        return;
+      }
+      hintsLeft--;
+      noHintsShown = false;  // Reset since a new hint was given
+      hintBtn.textContent = `Hint (${hintsLeft} left)`;
+      const hintEntry = document.createElement('div');
+      hintEntry.textContent = hint;
+      messages.appendChild(hintEntry);
+    });
+
+    giveUpBtn.addEventListener('click', () => {
+      if (!gameActive) return;
+      confirmGiveUpOverlay.style.display = 'flex';
+    });
+
+    confirmGiveUpYes.addEventListener('click', () => {
+      confirmGiveUpOverlay.style.display = 'none';
+      gameActive = false;
+      stopConfetti();
+      guessInput.disabled = true;
+      guessBtn.disabled = true;
+      hintBtn.disabled = true;
+      giveUpBtn.disabled = true;
+      // Show message in difficulty modal
+      giveUpMessage.textContent = `You gave up! The number was ${secretNumber.toLocaleString()}.`;
+      // Show difficulty modal
+      difficultyModalOverlay.style.display = 'flex';
+    });
+
+    confirmGiveUpNo.addEventListener('click', () => {
+      confirmGiveUpOverlay.style.display = 'none';
+      guessInput.focus();
+    });
+
+    startGameBtn.addEventListener('click', () => {
+      giveUpMessage.textContent = '';
+      startNewGame();
+    });
+
+    guessInput.addEventListener('input', () => {
+      const val = guessInput.value.trim();
+      guessBtn.disabled = val === '';
+    });
+
+    guessBtn.addEventListener('click', () => {
+      if (!gameActive) return;
+      handleGuess();
+    });
+
+    guessInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!gameActive) return;
+        handleGuess();
+      }
+    });
+
+    function handleGuess() {
+      if (guessBtn.disabled) return;
+
+      const guess = guessInput.value.trim();
+
+      if (!guess) {
+        messages.textContent = 'Please enter a number.';
+        guessBtn.disabled = true;
+        return;
+      }
+      guessBtn.disabled = false;
+
+      if (guess.includes('.') || guess.includes('-')) {
+        messages.textContent = 'Please enter a positive integer.';
+        return;
+      }
+
+      const guessNum = Number(guess);
+
+      if (!Number.isInteger(guessNum) || guessNum < low || guessNum > high) {
+        messages.textContent = `Number must be between ${low.toLocaleString()} and ${high.toLocaleString()}.`;
+        return;
+      }
+
+      if (hasRepeatingDigits(guessNum)) {
+        messages.textContent = 'Your guess has repeating digits. Try again!';
+        return;
+      }
+
+      let feedback = '';
+      if (guessNum === secretNumber) {
+        feedback = `🎉 Correct! The number was ${secretNumber.toLocaleString()}.`;
+        messages.textContent = feedback;
+        guessInput.disabled = true;
+        guessBtn.disabled = true;
+        hintBtn.disabled = true;
+        giveUpBtn.disabled = true;
+        gameActive = false;
+        playSound(sounds.correct);
+        showModal();
+        startConfetti();
+      } else if (guessNum < secretNumber) {
+        feedback = '📈 Too low.';
+        messages.textContent = feedback + ' Try a higher number!';
+        playSound(sounds.guessLow);
+        if (guessNum + 1 > low) low = guessNum + 1;
+      } else {
+        feedback = '📉 Too high.';
+        messages.textContent = feedback + ' Try a lower number!';
+        playSound(sounds.guessHigh);
+        if (guessNum - 1 < high) high = guessNum - 1;
+      }
+
+      rangeDisplay.textContent = `Current range: ${low.toLocaleString()} – ${high.toLocaleString()}`;
+
+      const guessEntry = document.createElement('div');
+      guessEntry.textContent = `You guessed ${guessNum.toLocaleString()}: ${feedback}`;
+      history.appendChild(guessEntry);
+
+      guessInput.value = '';
+      guessInput.focus();
+    }
+
+    debugToggle.addEventListener('change', () => {
+      if (debugToggle.checked) {
+        secretNumberDisplay.style.display = 'inline';
+        secretNumberDisplay.textContent = `Secret Number: ${secretNumber.toLocaleString()}`;
+      } else {
+        secretNumberDisplay.style.display = 'none';
+      }
+    });
+
+    // Disable game inputs initially until game started
+    guessInput.disabled = true;
+    guessBtn.disabled = true;
+    hintBtn.disabled = true;
+    giveUpBtn.style.display = 'none';
+  });
+</script>
+</body>
+</html>
