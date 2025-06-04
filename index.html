@@ -536,7 +536,7 @@
 
       const guessEntry = document.createElement('div');
       guessEntry.textContent = `You guessed ${guessNum.toLocaleString()}: ${feedback}`;
-      history.appendChild(guessEntry, history.children[1]);
+      history.insertBefore(guessEntry, history.children[1]); // index 0 is the <strong> label
 
       guessInput.value = '';
       guessInput.focus();
