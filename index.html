@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Number Guessing Game (No Repeating Digits)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
@@ -201,7 +201,7 @@
   <div class="container">
     <h1>Number Guessing Game</h1>
     <p>Guess the number between 1 and <span id="maxRangeLabel">1,000,000</span> with no repeating digits!</p>
-    <input type="number" id="guessInput" placeholder="Enter your guess" disabled />
+    <input inputmode="numeric" pattern="[0-9]*" id="guessInput" placeholder="Enter your guess" disabled />
     <button id="guessBtn" disabled>Guess</button>
     <button id="hintBtn" disabled>Hint (3 left)</button>
     <button id="giveUpBtn" disabled style="display:none;">Give Up</button>
